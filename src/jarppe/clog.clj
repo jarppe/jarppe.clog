@@ -20,6 +20,7 @@
   (let [e (last args)]
     (if (instance? Throwable e)
       (-> buffer
+        (.append "   ")
         (.append (.getName (class e)))
         (.append ": ")
         (.append (.getMessage ^Throwable e))
