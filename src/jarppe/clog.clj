@@ -3,10 +3,14 @@
 
 (def levels (zipmap [:trace :debug :info :warn :error :fatal] (range)))
 (def limit (atom (:trace levels)))
+(def writer (atom (fn [m] (print m) (flush))))
 (def ^DateTimeFormatter time-fmt (DateTimeFormat/forPattern "yyyy/MM/dd HH:mm:ss.SSS"))
 
 (defn log-limit! [level]
   (swap! limit (constantly (levels level))))
+
+(defn log-writer! [w]
+  (swap! writer (constantly w)))
 
 (defn time-str []
   (.print time-fmt (System/currentTimeMillis)))
@@ -44,13 +48,9 @@
     (stacktrace args)
     (.toString)))
 
-(defn log-out [message]
-  (print message)
-  (flush))
-
 (defmacro -log [level file line & args]
   `(if (>= (levels ~level) (deref limit))
-     (log-out (make-log-message ~file ~line ~level ~@args))))
+     ((deref writer) (make-log-message ~file ~line ~level ~@args))))
 
 (defmacro log [level & args] `(-log ~level ~*file* ~(:line (meta &form)) ~@args))
 

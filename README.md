@@ -17,18 +17,24 @@ My goal is to use this with ClojureScript too, so I'll try to drop all dependenc
 
 ## Install
 
-Add `[jarppe/clog "0.1.0"]` to you lein dependencies.
+```
+$ clone https://github.com/jarppe/jarppe.clog.git
+$ cd jarppe.clog
+$ lein install
+```
 
 ## Use
+
+Add `[jarppe/clog "0.1.0"]` to you lein dependencies.
+
+## Example
 
 ```clojure
 (ns hello
   (:use [jarppe.clog]))
 
 (debug "Hello")
-
 (info "Answer is: " 42)
-
 (error "Oh no, something broke" (Exception. "Not my fault"))
 ```
 
@@ -36,8 +42,8 @@ Code above produces:
 
 ```
 debug 2012/09/08 17:15:47.666 [jarppe/example.clj:4] Hello
-info 2012/09/08 17:15:47.667 [jarppe/example.clj:6] Answer is: 42
-error 2012/09/08 17:15:47.668 [jarppe/example.clj:8] Oh no, something broke
+info 2012/09/08 17:15:47.667 [jarppe/example.clj:5] Answer is: 42
+error 2012/09/08 17:15:47.668 [jarppe/example.clj:6] Oh no, something broke
    java.lang.Exception: Not my fault
 ```
 
