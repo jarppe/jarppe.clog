@@ -10,7 +10,7 @@
 
 (facts
   (fact (-> (stacktrace (StringBuilder.) ["a" "b" "c"]) .toString) => "")
-  (fact (-> (stacktrace (StringBuilder.) ["a" "b" "c" (Exception. "Oh noes")]) .toString) => (has-prefix "java.lang.Exception: Oh noes\n")))
+  (fact (-> (stacktrace (StringBuilder.) ["a" "b" "c" (Exception. "Oh noes")]) .toString) => (has-prefix "   java.lang.Exception: Oh noes\n")))
 
 (facts
   (fact (make-log-message "foo" 42 :fatal "a" "b" "c") => (has-prefix "fatal 2012/09/08 16:11:37.592 [foo:42] abc\n")
