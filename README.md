@@ -49,6 +49,8 @@ error 2012/09/08 17:15:47.668 [jarppe/example.clj:6] Oh no, something broke
 
 As you can see, if the last argument is an exception it will be printed on next line. I'll add a full stacktrace (propably) soon.
 
+Testing...
+
 ## License
 
 Copyright © 2012 Jarppe Länsiö
