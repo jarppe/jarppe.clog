@@ -1,62 +1,69 @@
 (ns jarppe.clog
-  (:import [org.joda.time.format DateTimeFormat DateTimeFormatter]))
+  (:require [clojure.string :as s]
+            [clj-stacktrace.repl :as stacktrace])
+  (:import [org.joda.time.format DateTimeFormat DateTimeFormatter]
+           [java.io ByteArrayOutputStream PrintWriter]))
+
+(set! *warn-on-reflection* true)
 
 (def levels (zipmap [:trace :debug :info :warn :error :fatal] (range)))
 (def limit (atom (:trace levels)))
-(def writer (atom (fn [m] (print m) (flush))))
 (def ^DateTimeFormatter time-fmt (DateTimeFormat/forPattern "yyyy/MM/dd HH:mm:ss.SSS"))
 
-(defn log-limit! [level]
-  (swap! limit (constantly (levels level))))
+(defn set-limit! [level]
+  (when-not (levels level) (throw (IllegalArgumentException. (str "unknown log elevel:" level))))
+  (reset! limit (levels level)))
 
-(defn log-writer! [w]
-  (swap! writer (constantly w)))
+(defn join-args ^PrintWriter [^PrintWriter out args]
+  (let [e (when (instance? Throwable (first args)) (first args))] 
+    (doseq [arg (if e (rest args) args)]
+      (.print out (str arg))
+      (.print out \space))
+    (.print out \newline)
+    (when e
+      (stacktrace/pst-on out false e)))
+  out)
 
-(defn time-str []
-  (.print time-fmt (System/currentTimeMillis)))
+(defn make-log-message ^bytes [file line level format-args & args]
+  (let [buffer (ByteArrayOutputStream. 256)
+        out (PrintWriter. buffer)
+        e (when (instance? Throwable (first args)) (first args))
+        args (if e (rest args) args)]
+    (doto out 
+      (.print (name level))
+      (.print \space)
+      (.print (.print time-fmt (System/currentTimeMillis)))
+      (.print " [")
+      (.print file)
+      (.print \:)
+      (.print line)
+      (.print "]: "))
+    (.println out (if format-args
+                    (apply format args)
+                    (s/join \space args)))
+    (when e
+      (stacktrace/pst-on out false e))
+    (.flush out)
+    (.toByteArray buffer)))
 
-(defn ^StringBuilder join-args [^StringBuilder buffer args]
-  (dorun
-    (map #(.append buffer (str %)) (take (- (count args) (if (instance? Throwable (last args)) 1 0)) args)))
-  buffer)
+(defmacro -log [level file line format-args & args]
+  `(when (>= (levels ~level) (deref limit))
+     (.write System/out (make-log-message ~file ~line ~level ~format-args ~@args))
+     (.flush System/out)))
 
-(defn ^StringBuilder stacktrace [^StringBuilder buffer args]
-  (let [e (last args)]
-    (if (instance? Throwable e)
-      (-> buffer
-        (.append "   ")
-        (.append (.getName (class e)))
-        (.append ": ")
-        (.append (.getMessage ^Throwable e))
-        (.append \newline))))
-  buffer)
+(defmacro log [level & args] `(-log ~level ~*file* ~(:line (meta &form)) false ~@args))
+(defmacro logf [level & args] `(-log ~level ~*file* ~(:line (meta &form)) true ~@args))
 
-(defn make-log-message [file line level & args]
-  (-> (StringBuilder.) 
-    (.append (name level))
-    (.append \space)
-    (.append (time-str))
-    (.append \space)
-    (.append \[)
-    (.append file)
-    (.append \:)
-    (.append line)
-    (.append \])
-    (.append \space)
-    (join-args args)
-    (.append \newline)
-    (stacktrace args)
-    (.toString)))
+(defmacro trace [& args] `(-log :trace ~*file* ~(:line (meta &form)) false ~@args))
+(defmacro debug [& args] `(-log :debug ~*file* ~(:line (meta &form)) false ~@args))
+(defmacro info  [& args] `(-log :info  ~*file* ~(:line (meta &form)) false ~@args))
+(defmacro warn  [& args] `(-log :warn  ~*file* ~(:line (meta &form)) false ~@args))
+(defmacro error [& args] `(-log :error ~*file* ~(:line (meta &form)) false ~@args))
+(defmacro fatal [& args] `(-log :fatal ~*file* ~(:line (meta &form)) false ~@args))
 
-(defmacro -log [level file line & args]
-  `(if (>= (levels ~level) (deref limit))
-     ((deref writer) (make-log-message ~file ~line ~level ~@args))))
-
-(defmacro log [level & args] `(-log ~level ~*file* ~(:line (meta &form)) ~@args))
-
-(defmacro trace [& args] `(-log :trace ~*file* ~(:line (meta &form)) ~@args))
-(defmacro debug [& args] `(-log :debug ~*file* ~(:line (meta &form)) ~@args))
-(defmacro info [& args]  `(-log :info  ~*file* ~(:line (meta &form)) ~@args))
-(defmacro warn [& args]  `(-log :warn  ~*file* ~(:line (meta &form)) ~@args))
-(defmacro error [& args] `(-log :error ~*file* ~(:line (meta &form)) ~@args))
-(defmacro fatal [& args] `(-log :fatal ~*file* ~(:line (meta &form)) ~@args))
+(defmacro tracef [& args] `(-log :trace ~*file* ~(:line (meta &form)) true ~@args))
+(defmacro debugf [& args] `(-log :debug ~*file* ~(:line (meta &form)) true ~@args))
+(defmacro infof  [& args] `(-log :info  ~*file* ~(:line (meta &form)) true ~@args))
+(defmacro warnf  [& args] `(-log :warn  ~*file* ~(:line (meta &form)) true ~@args))
+(defmacro errorf [& args] `(-log :error ~*file* ~(:line (meta &form)) true ~@args))
+(defmacro fatalf [& args] `(-log :fatal ~*file* ~(:line (meta &form)) true ~@args))
