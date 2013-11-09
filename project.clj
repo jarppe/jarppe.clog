@@ -1,4 +1,4 @@
-(defproject jarppe/clog "0.1.2"
+(defproject jarppe/clog "0.1.3-SNAPSHOT"
   :description "jarppe.clog"
   :url "http://github.com/jarppe/jarppe.clog"
   :dependencies [[org.clojure/clojure "1.5.1"]
