@@ -47,7 +47,7 @@
     (.toByteArray buffer)))
 
 (defmacro -log [level file line format-args & args]
-  `(when (>= (levels ~level) (deref limit))
+  `(when (>= ~(levels level) (deref limit))
      (.write System/out (make-log-message ~file ~line ~level ~format-args ~@args))
      (.flush System/out)))
 
