@@ -10,6 +10,12 @@
 (def limit (atom (:trace levels)))
 (def ^DateTimeFormatter time-fmt (DateTimeFormat/forPattern "yyyy/MM/dd HH:mm:ss.SSS"))
 
+(def ^:dynamic *mdc* nil)
+
+(defmacro with-mdc [mdc & body]
+  `(binding [*mdc* ~mdc]
+     (do ~@body)))
+
 (defn set-limit! [level]
   (when-not (levels level) (throw (IllegalArgumentException. (str "unknown log elevel:" level))))
   (reset! limit (levels level)))
@@ -33,7 +39,9 @@
       (.print (name level))
       (.print \space)
       (.print (.print time-fmt (System/currentTimeMillis)))
-      (.print " [")
+      (.print " <")
+      (.print (or *mdc* ""))
+      (.print "> [")
       (.print file)
       (.print \:)
       (.print line)
